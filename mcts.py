@@ -1,21 +1,32 @@
-from __future__ import division
+from __future__ import division, annotations
 
-import time
-import math
+from typing import Any, Callable
+
 import random
+import time
+
+import numpy as np
 
 
 def randomPolicy(state):
     while not state.isTerminal():
         try:
             action = random.choice(state.getPossibleActions())
-        except IndexError:
-            raise Exception("Non-terminal state has no possible actions: " + str(state))
+        except ValueError:
+            raise Exception(f'Non-terminal state has no possible actions: {state}')
         state = state.takeAction(action)
-    return state.getReward()
+    return state.getReward
 
 
-class treeNode():
+class TreeNode:
+
+    isTerminal: bool
+    isFullExpanded: bool
+    parent: TreeNode
+    numVisits: int
+    totalReward: float
+    children: dict
+
     def __init__(self, state, parent):
         self.state = state
         self.isTerminal = state.isTerminal()
@@ -26,24 +37,34 @@ class treeNode():
         self.children = {}
 
     def __str__(self):
-        s=[]
-        s.append("totalReward: %s"%(self.totalReward))
-        s.append("numVisits: %d"%(self.numVisits))
-        s.append("isTerminal: %s"%(self.isTerminal))
-        s.append("possibleActions: %s"%(self.children.keys()))
-        return "%s: {%s}"%(self.__class__.__name__, ', '.join(s))
+        return f'{self.__class__.__name__} - totalReward: {self.totalReward}, numVisits: {self.numVisits:d}, ' \
+               f'isTerminal: {self.isTerminal}, possibleActions: {self.children.keys()}'
 
-class mcts():
-    def __init__(self, timeLimit=None, iterationLimit=None, explorationConstant=1 / math.sqrt(2),
-                 rolloutPolicy=randomPolicy):
-        if timeLimit != None:
-            if iterationLimit != None:
+
+class MCTS:
+
+    timeLimit: float | int
+    searchLimit: int
+    explorationConstant: float
+    rollout: Callable[[Any], float]
+
+    def __init__(
+        self,
+        timeLimit: float | int = None,
+        iterationLimit: int = None,
+        explorationConstant: float = 1 / np.sqrt(2),
+        rolloutPolicy: Callable[[Any], float] = randomPolicy,
+    ):
+        self.root = None
+
+        if timeLimit is not None:
+            if iterationLimit is not None:
                 raise ValueError("Cannot have both a time limit and an iteration limit")
             # time taken for each MCTS search in milliseconds
             self.timeLimit = timeLimit
             self.limitType = 'time'
         else:
-            if iterationLimit == None:
+            if iterationLimit is None:
                 raise ValueError("Must have either a time limit or an iteration limit")
             # number of iterations of the search
             if iterationLimit < 1:
@@ -54,7 +75,7 @@ class mcts():
         self.rollout = rolloutPolicy
 
     def search(self, initialState, needDetails=False):
-        self.root = treeNode(initialState, None)
+        self.root = TreeNode(initialState, None)
 
         if self.limitType == 'time':
             timeLimit = time.time() + self.timeLimit / 1000
@@ -65,7 +86,7 @@ class mcts():
                 self.executeRound()
 
         bestChild = self.getBestChild(self.root, 0)
-        action=(action for action, node in self.root.children.items() if node is bestChild).__next__()
+        action = (action for action, node in self.root.children.items() if node is bestChild).__next__()
         if needDetails:
             return {"action": action, "expectedReward": bestChild.totalReward / bestChild.numVisits}
         else:
@@ -79,7 +100,7 @@ class mcts():
         reward = self.rollout(node.state)
         self.backpropogate(node, reward)
 
-    def selectNode(self, node):
+    def selectNode(self, node: TreeNode) -> TreeNode:
         while not node.isTerminal:
             if node.isFullyExpanded:
                 node = self.getBestChild(node, self.explorationConstant)
@@ -87,33 +108,43 @@ class mcts():
                 return self.expand(node)
         return node
 
-    def expand(self, node):
+    @staticmethod
+    def expand(node: TreeNode) -> TreeNode:
         actions = node.state.getPossibleActions()
         for action in actions:
             if action not in node.children:
-                newNode = treeNode(node.state.takeAction(action), node)
+                newNode = TreeNode(node.state.takeAction(action), node)
                 node.children[action] = newNode
                 if len(actions) == len(node.children):
                     node.isFullyExpanded = True
                 return newNode
-
         raise Exception("Should never reach here")
 
-    def backpropogate(self, node, reward):
+    @staticmethod
+    def backpropogate(node: TreeNode, reward: float | int):
         while node is not None:
             node.numVisits += 1
             node.totalReward += reward
             node = node.parent
 
-    def getBestChild(self, node, explorationValue):
+    @staticmethod
+    def getBestChild(node: TreeNode, explorationValue: float | int) -> TreeNode:
         bestValue = float("-inf")
         bestNodes = []
         for child in node.children.values():
-            nodeValue = node.state.getCurrentPlayer() * child.totalReward / child.numVisits + explorationValue * math.sqrt(
-                2 * math.log(node.numVisits) / child.numVisits)
+            nodeValue = node.state.getCurrentPlayer() * child.totalReward / child.numVisits + explorationValue * \
+                np.sqrt(2 * np.log(node.numVisits) / child.numVisits)
             if nodeValue > bestValue:
                 bestValue = nodeValue
                 bestNodes = [child]
             elif nodeValue == bestValue:
                 bestNodes.append(child)
         return random.choice(bestNodes)
+
+    def getBestRoute(self):
+        nodeList = []
+        treeNode = self.root
+        while not treeNode.isTerminal:
+            nodeList.append(treeNode.state)
+            treeNode = self.getBestChild(treeNode, 0)
+        return nodeList

@@ -1,7 +1,7 @@
 from __future__ import division
 
 from copy import deepcopy
-from mcts import mcts
+from mcts import MCTS
 from functools import reduce
 import operator
 
@@ -75,7 +75,7 @@ class Action():
 
 if __name__=="__main__":
     initialState = NaughtsAndCrossesState()
-    searcher = mcts(timeLimit=1000)
+    searcher = MCTS(timeLimit=1000)
     action = searcher.search(initialState=initialState)
 
     print(action)
