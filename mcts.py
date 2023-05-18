@@ -1,13 +1,13 @@
 from __future__ import division, annotations
 
-from typing import Callable
+from typing import Callable, Any
 
 import time
 
 import numpy as np
 
 
-def randomPolicy(state: object, rng: np.random.Generator = np.random.default_rng()) -> float:
+def randomPolicy(state: Any, rng: np.random.Generator = np.random.default_rng()) -> float:
     while not state.isTerminal():
         try:
             action = rng.choice(state.getPossibleActions())
@@ -46,14 +46,14 @@ class MCTS:
     timeLimit: float | int
     searchLimit: int
     explorationConstant: float
-    rollout: Callable[[object, np.random.Generator], float]
+    rollout: Callable[[Any, np.random.Generator], float]
 
     def __init__(
         self,
         timeLimit: float | int = None,
         iterationLimit: int = None,
         explorationConstant: float = 1 / np.sqrt(2),
-        rolloutPolicy: Callable[[object, np.random.Generator], float] = randomPolicy,
+        rolloutPolicy: Callable[[Any, np.random.Generator], float] = randomPolicy,
         rng: np.random.Generator = np.random.default_rng(),
     ):
         self.root = None
