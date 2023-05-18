@@ -1,21 +1,20 @@
 from __future__ import division, annotations
 
-from typing import Any, Callable
+from typing import Callable
 
-import random
 import time
 
 import numpy as np
 
 
-def randomPolicy(state):
+def randomPolicy(state: object, rng: np.random.Generator = np.random.default_rng()) -> float:
     while not state.isTerminal():
         try:
-            action = random.choice(state.getPossibleActions())
+            action = rng.choice(state.getPossibleActions())
         except ValueError:
             raise Exception(f'Non-terminal state has no possible actions: {state}')
         state = state.takeAction(action)
-    return state.getReward
+    return state.getReward()
 
 
 class TreeNode:
@@ -43,19 +42,23 @@ class TreeNode:
 
 class MCTS:
 
+    rng: np.random.Generator
     timeLimit: float | int
     searchLimit: int
     explorationConstant: float
-    rollout: Callable[[Any], float]
+    rollout: Callable[[object, np.random.Generator], float]
 
     def __init__(
         self,
         timeLimit: float | int = None,
         iterationLimit: int = None,
         explorationConstant: float = 1 / np.sqrt(2),
-        rolloutPolicy: Callable[[Any], float] = randomPolicy,
+        rolloutPolicy: Callable[[object, np.random.Generator], float] = randomPolicy,
+        rng: np.random.Generator = np.random.default_rng(),
     ):
         self.root = None
+
+        self.rng = rng
 
         if timeLimit is not None:
             if iterationLimit is not None:
@@ -97,7 +100,7 @@ class MCTS:
             execute a selection-expansion-simulation-backpropagation round
         """
         node = self.selectNode(self.root)
-        reward = self.rollout(node.state)
+        reward = self.rollout(node.state, self.rng)
         self.backpropogate(node, reward)
 
     def selectNode(self, node: TreeNode) -> TreeNode:
@@ -127,8 +130,7 @@ class MCTS:
             node.totalReward += reward
             node = node.parent
 
-    @staticmethod
-    def getBestChild(node: TreeNode, explorationValue: float | int) -> TreeNode:
+    def getBestChild(self, node: TreeNode, explorationValue: float | int) -> TreeNode:
         bestValue = float("-inf")
         bestNodes = []
         for child in node.children.values():
@@ -139,7 +141,7 @@ class MCTS:
                 bestNodes = [child]
             elif nodeValue == bestValue:
                 bestNodes.append(child)
-        return random.choice(bestNodes)
+        return self.rng.choice(bestNodes)
 
     def getBestRoute(self):
         nodeList = []
