@@ -77,7 +77,7 @@ class MCTS:
         self.explorationConstant = explorationConstant
         self.rollout = rolloutPolicy
 
-    def search(self, initialState, needDetails=False):
+    def search(self, initialState, returnBestAction=False, needDetails=False):
         self.root = TreeNode(initialState, None)
 
         if self.limitType == 'time':
@@ -88,11 +88,11 @@ class MCTS:
             for i in range(self.searchLimit):
                 self.executeRound()
 
-        bestChild = self.getBestChild(self.root, 0)
-        action = (action for action, node in self.root.children.items() if node is bestChild).__next__()
-        if needDetails:
-            return {"action": action, "expectedReward": bestChild.totalReward / bestChild.numVisits}
-        else:
+        if returnBestAction:
+            bestChild = self.getBestChild(self.root, 0)
+            action = (action for action, node in self.root.children.items() if node is bestChild).__next__()
+            if needDetails:
+                return {"action": action, "expectedReward": bestChild.totalReward / bestChild.numVisits}
             return action
 
     def executeRound(self):

@@ -26,12 +26,12 @@ Once these have been implemented, running MCTS is as simple as initializing your
 from mcts import mcts
 
 searcher = mcts(timeLimit=1000)
-bestAction = searcher.search(initialState=initialState)
+bestAction = searcher.search(initialState=initialState, returnBestAction=True)
 ```
 Here the unit of `timeLimit=1000` is millisecond. You can also use `iterationLimit=1600` to specify the number of rollouts. Exactly one of `timeLimit` and `iterationLimit` should be specified. The expected reward of best action can be got by setting `needDetails` to `True` in `searcher`.
 
 ```python
-resultDict = searcher.search(initialState=initialState, needDetails=True)
+resultDict = searcher.search(initialState=initialState, returnBestAction=True, needDetails=True)
 print(resultDict.keys()) #currently includes dict_keys(['action', 'expectedReward'])
 ```
 
