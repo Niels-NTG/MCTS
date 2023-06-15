@@ -78,6 +78,8 @@ class MCTS:
         self.rollout = rolloutPolicy
 
     def search(self, initialState, returnBestAction=False, needDetails=False):
+        startTime = time.time()
+
         self.root = TreeNode(initialState, None)
 
         if self.limitType == 'time':
@@ -87,6 +89,9 @@ class MCTS:
         else:
             for i in range(self.searchLimit):
                 self.executeRound()
+
+        endTime = int(time.time())
+        print(f'MCTS - Completed search in {endTime - startTime} seconds')
 
         if returnBestAction:
             bestChild = self.getBestChild(self.root, 0)
