@@ -78,7 +78,7 @@ class MCTS:
         self.rollout = rolloutPolicy
 
     def search(self, initialState, returnBestAction=False, needDetails=False):
-        startTime = time.time()
+        startTime = int(time.time())
 
         self.root = TreeNode(initialState, None)
 
